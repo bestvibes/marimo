@@ -11,9 +11,9 @@ concurrency:
 
 permissions:
   contents: read
+  id-token: write # required for Doppler OIDC
 
 env:
-  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: marimo
   MARIMO_SKIP_UPDATE_CHECK: 1
 
@@ -48,6 +48,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 🔐 Fetch Doppler secrets
+        uses: dopplerhq/secrets-fetch-action@v1.3.0
+        id: secrets
+        with:
+          auth-method: oidc
+          doppler-identity-id: ${{ vars.DOPPLER_IDENTITY_ID }}
+          doppler-project: marimo-oss
+          doppler-config: ci_test
+
       - name: 📥 Install repo
         uses: ./.github/actions/install
 
@@ -58,6 +67,8 @@ jobs:
 
       - name: 🧹 Lint
         id: lint
+        env:
+          TURBO_TOKEN: ${{ steps.secrets.outputs.TURBO_TOKEN }}
         run: pnpm turbo lint
 
       - name: 🔒 Verify clean git tree after lint
@@ -109,6 +120,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 🔐 Fetch Doppler secrets
+        uses: dopplerhq/secrets-fetch-action@v1.3.0
+        id: secrets
+        with:
+          auth-method: oidc
+          doppler-identity-id: ${{ vars.DOPPLER_IDENTITY_ID }}
+          doppler-project: marimo-oss
+          doppler-config: ci_test
+
       - name: 📥 Install repo
         uses: ./.github/actions/install
 
@@ -117,6 +137,8 @@ jobs:
 
       - name: 🔎 Type check
         id: typecheck
+        env:
+          TURBO_TOKEN: ${{ steps.secrets.outputs.TURBO_TOKEN }}
         run: pnpm turbo typecheck
 
       - name: 🔒 Verify clean git tree after typecheck
@@ -132,6 +154,8 @@ jobs:
 
       - name: 🧪 Test
         id: test
+        env:
+          TURBO_TOKEN: ${{ steps.secrets.outputs.TURBO_TOKEN }}
         run: pnpm turbo test
 
       - name: Summarize typecheck failure
@@ -172,6 +196,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 🔐 Fetch Doppler secrets
+        uses: dopplerhq/secrets-fetch-action@v1.3.0
+        id: secrets
+        with:
+          auth-method: oidc
+          doppler-identity-id: ${{ vars.DOPPLER_IDENTITY_ID }}
+          doppler-project: marimo-oss
+          doppler-config: ci_test
+
       - name: 📥 Install repo
         uses: ./.github/actions/install
 
@@ -195,12 +228,14 @@ jobs:
         run: pnpm turbo build
         env:
           NODE_ENV: production
+          TURBO_TOKEN: ${{ steps.secrets.outputs.TURBO_TOKEN }}
 
       - name: 📦 Build islands frontend
         env:
           NODE_ENV: production
           VITE_MARIMO_ISLANDS: "true"
           VITE_MARIMO_VERSION: "0.0.0"
+          TURBO_TOKEN: ${{ steps.secrets.outputs.TURBO_TOKEN }}
         run: |
           npm version 0.0.0 --no-git-tag-version
           pnpm turbo build:islands

@@ -11,6 +11,7 @@ concurrency:
 
 permissions:
   contents: read
+  id-token: write # required for Doppler OIDC
 
 env:
   MARIMO_SKIP_UPDATE_CHECK: 1
@@ -277,6 +278,16 @@ jobs:
             --picked=first \
             --cov=marimo --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
 
+      - name: 🔐 Fetch Doppler secrets
+        if: ${{ !cancelled() }}
+        uses: dopplerhq/secrets-fetch-action@v1.3.0
+        id: secrets
+        with:
+          auth-method: oidc
+          doppler-identity-id: ${{ vars.DOPPLER_IDENTITY_ID }}
+          doppler-project: marimo-oss
+          doppler-config: ci_test
+
       # Only upload coverage on `main` so it is not blocking
       # and only on `3.13`, `ubuntu-latest`, with optional deps since it will cover
       # the most surface area.
@@ -286,10 +297,10 @@ jobs:
         with:
           files: ./coverage.xml
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_TOKEN: ${{ steps.secrets.outputs.CODECOV_TOKEN }}
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_TOKEN: ${{ steps.secrets.outputs.CODECOV_TOKEN }}
